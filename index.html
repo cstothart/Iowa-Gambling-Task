@@ -772,8 +772,8 @@
         <span>Standalone browser task</span>
       </div>
       <div class="status-strip" id="statusStrip" aria-live="polite">
-        <span class="status-pill" id="bankStatus">Bank: $2000</span>
-        <span class="status-pill" id="trialStatus">No active session</span>
+        <span class="status-pill" id="bankStatus">Money: $2000</span>
+        <span class="status-pill" id="trialStatus">Not started yet</span>
       </div>
     </header>
 
@@ -781,20 +781,20 @@
       <section class="screen setup-screen" id="setupScreen">
         <div class="setup-layout">
           <div class="intro-panel">
-            <h2>Choose decks to build your bank.</h2>
-            <p>You start with a loan of $2000. On each trial, choose one of four decks. Each choice wins money, and some choices also require paying a fee.</p>
-            <p>After choosing a deck, collect the outcome to update your bank and continue. Use touch, mouse, or number keys 1 through 4.</p>
+            <h2>Pick decks to grow your money.</h2>
+            <p>You start with $2000. Each turn, you pick one of four decks. Every pick wins you some money. Some picks also make you pay a fee.</p>
+            <p>After you pick a deck, tap Collect to update your money and move on. You can use touch, a mouse, or the number keys 1 to 4.</p>
             <ol class="rule-list">
-              <li>Choose one deck: A, B, C, or D.</li>
-              <li>Review the win and any fee for that choice.</li>
-              <li>Collect the outcome and continue until all 100 choices are complete.</li>
+              <li>Pick one deck: A, B, C, or D.</li>
+              <li>See how much you won and any fee you have to pay.</li>
+              <li>Tap Collect, then keep going until you finish all 100 picks.</li>
             </ol>
-            <div class="accessibility-note">The deck patterns are not shown during the task. The goal is to make choices from feedback as it unfolds.</div>
+            <div class="accessibility-note">You can't see how each deck works ahead of time. The point is to figure out the best decks as you play.</div>
           </div>
 
           <aside class="config-panel" aria-labelledby="configHeading">
-            <h2 id="configHeading">Session</h2>
-            <p>This standalone version runs locally in the browser and saves results only when you download the CSV.</p>
+            <h2 id="configHeading">Game info</h2>
+            <p>This game runs right in your web browser. Nothing is saved unless you download your results when you finish.</p>
             <div class="session-facts" id="sessionFacts"></div>
             <button class="primary-button" id="startButton" type="button">Start task</button>
           </aside>
@@ -818,7 +818,7 @@
             </div>
           </div>
 
-          <div class="task-cue" id="responseCue">Choose one of the four decks.</div>
+          <div class="task-cue" id="responseCue">Pick one of the four decks.</div>
 
           <div class="deck-grid" id="deckGrid" aria-label="Deck choices"></div>
 
@@ -834,7 +834,7 @@
           </div>
 
           <div class="collect-wrap" id="collectWrap" hidden>
-            <button class="primary-button" id="collectButton" type="button">Collect / pay fee</button>
+            <button class="primary-button" id="collectButton" type="button">Collect</button>
             <p class="collect-note" id="collectNote"></p>
           </div>
         </section>
@@ -843,7 +843,7 @@
 
       <section class="screen results-screen" id="resultsScreen" hidden>
         <div class="results-panel">
-          <h2 id="resultsHeading">Session complete</h2>
+          <h2 id="resultsHeading">All done!</h2>
           <p id="resultsSummary"></p>
           <div class="metric-grid" id="metricGrid"></div>
           <div class="interpretation-panel" id="interpretationPanel"></div>
@@ -911,7 +911,7 @@
       totalTrials: 100,
       startingBank: 2000,
       feeProbability: 0.5,
-      collectLabel: "Collect / pay fee",
+      collectLabel: "Collect",
       requiredCsvColumns: CORE_CSV_COLUMNS,
       protocolChecklist: [
         "100 completed choices before results",
@@ -1031,8 +1031,8 @@
 
     function renderSessionFacts() {
       const facts = [
-        { label: "Choices", value: TASK_CONFIG.totalTrials },
-        { label: "Starting bank", value: formatMoney(TASK_CONFIG.startingBank) }
+        { label: "Picks", value: TASK_CONFIG.totalTrials },
+        { label: "Starting money", value: formatMoney(TASK_CONFIG.startingBank) }
       ];
       dom.sessionFacts.innerHTML = facts.map((fact) => `
         <div class="session-fact">
@@ -1152,13 +1152,13 @@
       dom.rewardText.textContent = `You win ${formatMoney(trial.reward)}`;
       if (trial.feeApplied) {
         dom.feeCard.className = "outcome-card active fee";
-        dom.feeText.textContent = `Fee of ${formatMoney(trial.fee)}`;
+        dom.feeText.textContent = `You pay ${formatMoney(trial.fee)}`;
       } else {
         dom.feeCard.className = "outcome-card active no-fee";
         dom.feeText.textContent = "No fee";
       }
-      dom.responseCue.textContent = `Deck ${trial.deck} selected. Collect the outcome to continue.`;
-      dom.collectNote.textContent = `This choice will change your bank by ${formatSignedMoney(trial.netChange)}.`;
+      dom.responseCue.textContent = `You picked Deck ${trial.deck}. Tap Collect to go on.`;
+      dom.collectNote.textContent = `This pick changes your money by ${formatSignedMoney(trial.netChange)}.`;
       dom.collectWrap.hidden = false;
       dom.collectButton.focus();
     }
@@ -1192,7 +1192,7 @@
       dom.feeCard.className = "outcome-card";
       dom.rewardText.textContent = "Waiting";
       dom.feeText.textContent = "Waiting";
-      dom.responseCue.textContent = "Choose one of the four decks.";
+      dom.responseCue.textContent = "Pick one of the four decks.";
       dom.collectWrap.hidden = true;
       dom.collectNote.textContent = "";
     }
@@ -1206,20 +1206,20 @@
 
     function updateTaskView(forceComplete = false) {
       if (!state) {
-        dom.bankStatus.textContent = `Bank: ${formatMoney(TASK_CONFIG.startingBank)}`;
-        dom.trialStatus.textContent = "No active session";
+        dom.bankStatus.textContent = `Money: ${formatMoney(TASK_CONFIG.startingBank)}`;
+        dom.trialStatus.textContent = "Not started yet";
         dom.progressBar.style.width = "0%";
         return;
       }
       dom.bankValue.textContent = formatMoney(state.bank);
-      dom.bankStatus.textContent = `Bank: ${formatMoney(state.bank)}`;
+      dom.bankStatus.textContent = `Money: ${formatMoney(state.bank)}`;
       if (forceComplete) {
-        dom.trialStatus.textContent = "Session complete";
+        dom.trialStatus.textContent = "All done";
         dom.progressBar.style.width = `${Math.min(100, (state.trials.length / TASK_CONFIG.totalTrials) * 100)}%`;
         return;
       }
       dom.trialValue.textContent = `${state.trialNumber} / ${TASK_CONFIG.totalTrials}`;
-      dom.trialStatus.textContent = `Trial ${state.trialNumber} of ${TASK_CONFIG.totalTrials}`;
+      dom.trialStatus.textContent = `Pick ${state.trialNumber} of ${TASK_CONFIG.totalTrials}`;
       dom.progressBar.style.width = `${Math.min(100, (state.trials.length / TASK_CONFIG.totalTrials) * 100)}%`;
     }
 
@@ -1238,8 +1238,8 @@
       state = null;
       resetFeedback();
       dom.progressBar.style.width = "0%";
-      dom.bankStatus.textContent = `Bank: ${formatMoney(TASK_CONFIG.startingBank)}`;
-      dom.trialStatus.textContent = "No active session";
+      dom.bankStatus.textContent = `Money: ${formatMoney(TASK_CONFIG.startingBank)}`;
+      dom.trialStatus.textContent = "Not started yet";
       dom.bankValue.textContent = formatMoney(TASK_CONFIG.startingBank);
       dom.trialValue.textContent = `1 / ${TASK_CONFIG.totalTrials}`;
       showScreen("setup");
@@ -1253,16 +1253,16 @@
       const netGain = state.bank - TASK_CONFIG.startingBank;
       const feeCount = state.trials.reduce((sum, trial) => sum + trial.feeApplied, 0);
       const medianRt = median(state.trials.map((trial) => trial.responseTime).filter(Number.isFinite));
-      dom.resultsHeading.textContent = "Session complete";
-      dom.resultsSummary.textContent = `The session was completed after ${trialsCompleted} of ${TASK_CONFIG.totalTrials} choices.`;
+      dom.resultsHeading.textContent = "All done!";
+      dom.resultsSummary.textContent = `You made all ${trialsCompleted} picks. Your results are below.`;
       const metrics = [
-        { label: "Ending bank", value: formatMoney(state.bank), primary: true },
-        { label: "Net change", value: formatSignedMoney(netGain) },
-        { label: "A/B choices", value: highPenaltyChoices },
-        { label: "C/D choices", value: lowerPenaltyChoices },
+        { label: "Money at end", value: formatMoney(state.bank), primary: true },
+        { label: "Gain or loss", value: formatSignedMoney(netGain) },
+        { label: "A and B picks", value: highPenaltyChoices },
+        { label: "C and D picks", value: lowerPenaltyChoices },
         { label: "Net score", value: formatSignedNumber(netScore) },
         { label: "Fees paid", value: feeCount },
-        { label: "Typical response time", value: Number.isFinite(medianRt) ? `${Math.round(medianRt)} ms` : "n/a" }
+        { label: "Typical pick time", value: Number.isFinite(medianRt) ? `${Math.round(medianRt)} ms` : "n/a" }
       ];
       dom.metricGrid.innerHTML = metrics.map((metric) => `
         <div class="metric${metric.primary ? " primary" : ""}">
@@ -1270,7 +1270,7 @@
           <strong>${escapeHtml(String(metric.value))}</strong>
         </div>
       `).join("");
-      dom.resultMeta.textContent = `Session ID: ${state.sessionId}. Use Download CSV for the trial-by-trial record.`;
+      dom.resultMeta.textContent = `Session ID: ${state.sessionId}. Click Download CSV to save a record of every pick.`;
       renderResultsInterpretation({
         trialsCompleted,
         highPenaltyChoices,
@@ -1282,25 +1282,25 @@
     }
 
     function renderResultsInterpretation({ trialsCompleted, highPenaltyChoices, lowerPenaltyChoices, netScore, netGain, medianRt }) {
-      const choiceText = trialsCompleted === 1 ? "1 choice" : `${trialsCompleted} choices`;
+      const choiceText = trialsCompleted === 1 ? "1 pick" : `${trialsCompleted} picks`;
       const responseSpeedText = Number.isFinite(medianRt)
-        ? `Your typical deck choice took about ${Math.round(medianRt)} ms.`
-        : "Response speed was not available for this session.";
+        ? `On average, each pick took you about ${Math.round(medianRt)} milliseconds. (1,000 milliseconds make 1 second.)`
+        : "We couldn't measure how fast you picked this time.";
       const directionText = netScore > 0
-        ? "You chose the lower-penalty decks more often than the higher-penalty decks."
+        ? "You chose the better decks (C and D) more often than decks A and B."
         : netScore < 0
-          ? "You chose the higher-penalty decks more often than the lower-penalty decks."
-          : "You chose the higher-penalty and lower-penalty decks equally often.";
+          ? "You chose decks A and B more often than the better decks (C and D)."
+          : "You chose both kinds of decks the same number of times.";
       const highPenaltyChoiceText = `${highPenaltyChoices} ${highPenaltyChoices === 1 ? "time" : "times"}`;
       const lowerPenaltyChoiceText = `${lowerPenaltyChoices} ${lowerPenaltyChoices === 1 ? "time" : "times"}`;
       dom.interpretationPanel.innerHTML = `
         <h3>What these results mean</h3>
-        <p><strong>Takeaway: you ended ${formatSignedMoney(netGain)} from the starting loan after ${choiceText}.</strong></p>
-        <p>This task looks at learning from uncertain rewards and fees. Some decks offer larger immediate wins, but those choices can also carry larger costs over time.</p>
-        <p>You chose decks A/B ${highPenaltyChoiceText} and decks C/D ${lowerPenaltyChoiceText}. The net score is C/D choices minus A/B choices, so higher positive values mean more choices from the lower-penalty side.</p>
+        <p><strong>After ${choiceText}, your money changed by ${formatSignedMoney(netGain)} from the $2000 you started with.</strong></p>
+        <p>This game checks how well you learn which decks are best when the odds are hidden. Decks A and B pay $100 a turn but hit you with a big $250 fee about half the time. Decks C and D pay only $50 a turn and charge just a $50 fee about half the time. Over many turns, decks C and D come out ahead.</p>
+        <p>You picked decks A and B ${highPenaltyChoiceText} and decks C and D ${lowerPenaltyChoiceText}. Your net score is your C and D picks minus your A and B picks. A higher score means you chose the better decks (C and D) more often.</p>
         <p>${escapeHtml(directionText)}</p>
-        <p>${escapeHtml(responseSpeedText)} The summary reflects the complete 100-choice session.</p>
-        <p class="clinical-note">This browser task is for demonstration and education. It should not be used as a clinical diagnosis or as a substitute for a professional assessment.</p>
+        <p>${escapeHtml(responseSpeedText)} These numbers cover all 100 picks.</p>
+        <p class="clinical-note">This game is only for learning and practice. It is not a medical test, and it cannot diagnose anyone. For a real evaluation, talk to a professional.</p>
       `;
     }
 
