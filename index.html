@@ -1,0 +1,1506 @@
+<!doctype html>
+<!-- Iowa Gambling Task coded to match the description and live demo at https://www.psytoolkit.org/experiment-library/igt.html -->
+<!-- Coded using Codex (GPT-5) -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Iowa Gambling Task</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #040606;
+      --bg-soft: #08100f;
+      --panel: rgba(10, 16, 16, 0.94);
+      --panel-strong: #101a18;
+      --panel-lift: #15211e;
+      --text: #f5fbf7;
+      --muted: #a9bab3;
+      --muted-strong: #d4e2dc;
+      --line: rgba(103, 140, 131, 0.25);
+      --line-strong: rgba(128, 179, 167, 0.46);
+      --accent: #40f0d0;
+      --accent-dark: #0ba68b;
+      --accent-green: #7df1a7;
+      --accent-warm: #f6bd56;
+      --good: #74f2a0;
+      --bad: #ff6676;
+      --warn: #f6bd56;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.56), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+      --shadow-tight: 0 14px 36px rgba(0, 0, 0, 0.38);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      background:
+        repeating-linear-gradient(90deg, rgba(103, 140, 131, 0.08) 0 1px, transparent 1px 88px),
+        repeating-linear-gradient(0deg, rgba(103, 140, 131, 0.055) 0 1px, transparent 1px 88px),
+        linear-gradient(120deg, rgba(64, 240, 208, 0.08), transparent 30%),
+        linear-gradient(155deg, #030505 0%, #07100f 42%, #090c0b 70%, #03110f 100%);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.45;
+      min-width: 320px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 5px);
+      opacity: 0.5;
+      mix-blend-mode: screen;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(64, 240, 208, 0.4);
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      isolation: isolate;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: calc(0.9rem + env(safe-area-inset-top, 0px)) clamp(1rem, 4vw, 2rem) 0.9rem;
+      background:
+        linear-gradient(180deg, rgba(16, 26, 24, 0.94), rgba(8, 13, 13, 0.9));
+      border-bottom: 1px solid rgba(64, 240, 208, 0.18);
+      box-shadow: 0 14px 42px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(18px) saturate(1.18);
+    }
+
+    .topbar::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(64, 240, 208, 0.78), rgba(246, 189, 86, 0.42), transparent);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+      line-height: 1.1;
+      font-weight: 760;
+      text-shadow: 0 0 26px rgba(64, 240, 208, 0.16);
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 650;
+    }
+
+    .status-strip {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2rem;
+      padding: 0.3rem 0.65rem;
+      border: 1px solid rgba(64, 240, 208, 0.26);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(21, 33, 30, 0.94), rgba(8, 14, 14, 0.94));
+      color: var(--text);
+      white-space: nowrap;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset, 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .main {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      padding: clamp(1rem, 3vw, 1.9rem);
+      padding-bottom: calc(clamp(1rem, 3vw, 1.9rem) + env(safe-area-inset-bottom, 0px));
+      flex: 1;
+    }
+
+    .screen[hidden] {
+      display: none !important;
+    }
+
+    .setup-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(290px, 390px);
+      gap: clamp(1rem, 3vw, 1.5rem);
+      align-items: start;
+    }
+
+    .intro-panel,
+    .config-panel,
+    .results-panel {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 32%),
+        var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .intro-panel::before,
+    .config-panel::before,
+    .results-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(64, 240, 208, 0.78), rgba(125, 241, 167, 0.3), transparent);
+      opacity: 0.9;
+    }
+
+    .intro-panel {
+      padding: clamp(1.15rem, 3vw, 1.7rem);
+    }
+
+    .intro-panel h2,
+    .results-panel h2,
+    .config-panel h2 {
+      margin: 0 0 0.8rem;
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .intro-panel p,
+    .config-panel p {
+      margin: 0 0 0.85rem;
+      color: var(--muted);
+      max-width: 65ch;
+    }
+
+    .rule-list {
+      margin: 1rem 0 0;
+      padding: 0;
+      color: var(--text);
+      list-style: none;
+      counter-reset: rule-step;
+    }
+
+    .rule-list li {
+      counter-increment: rule-step;
+      position: relative;
+      min-height: 2.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.48rem 0.65rem 0.48rem 2.55rem;
+      border: 1px solid rgba(103, 140, 131, 0.18);
+      border-radius: var(--radius);
+      background: rgba(8, 18, 18, 0.66);
+    }
+
+    .rule-list li + li {
+      margin-top: 0.5rem;
+    }
+
+    .rule-list li::before {
+      content: counter(rule-step);
+      position: absolute;
+      left: 0.65rem;
+      width: 1.36rem;
+      height: 1.36rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(64, 240, 208, 0.36);
+      border-radius: 999px;
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 800;
+      background: rgba(64, 240, 208, 0.08);
+    }
+
+    .accessibility-note,
+    .clinical-note {
+      margin-top: 1rem;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid rgba(246, 189, 86, 0.28);
+      border-radius: var(--radius);
+      background: rgba(246, 189, 86, 0.08);
+      color: #f7dfae;
+      font-size: 0.93rem;
+    }
+
+    .config-panel {
+      padding: clamp(1rem, 2.5vw, 1.35rem);
+    }
+
+    .session-facts {
+      display: grid;
+      gap: 0.7rem;
+      margin: 1rem 0;
+    }
+
+    .session-fact {
+      display: grid;
+      gap: 0.12rem;
+      padding: 0.72rem 0.8rem;
+      border: 1px solid rgba(64, 240, 208, 0.18);
+      border-radius: var(--radius);
+      background: rgba(4, 12, 12, 0.54);
+    }
+
+    .session-fact span {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .session-fact strong {
+      font-size: 1.05rem;
+    }
+
+    .primary-button,
+    .secondary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.85rem;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      padding: 0.72rem 1rem;
+      font-weight: 780;
+      text-decoration: none;
+    }
+
+    .primary-button {
+      width: 100%;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      color: #001513;
+      border-color: rgba(64, 240, 208, 0.7);
+      box-shadow: 0 16px 38px rgba(11, 166, 139, 0.24), 0 1px 0 rgba(255, 255, 255, 0.32) inset;
+    }
+
+    .primary-button:hover,
+    .primary-button:focus-visible {
+      filter: brightness(1.08);
+    }
+
+    .secondary-button {
+      background: rgba(12, 22, 21, 0.9);
+      color: var(--text);
+      border-color: rgba(64, 240, 208, 0.28);
+    }
+
+    .secondary-button:hover,
+    .secondary-button:focus-visible {
+      background: rgba(18, 35, 33, 0.95);
+      border-color: rgba(64, 240, 208, 0.46);
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 0.42rem;
+      overflow: hidden;
+      border: 1px solid rgba(64, 240, 208, 0.22);
+      border-radius: 999px;
+      background: rgba(5, 10, 10, 0.7);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+      margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-green), var(--accent-warm));
+      transition: width 180ms ease;
+    }
+
+    .task-board {
+      display: grid;
+      gap: clamp(0.9rem, 2vw, 1.2rem);
+      padding: clamp(1rem, 3vw, 1.4rem);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.032), transparent 32%),
+        rgba(8, 14, 14, 0.94);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .bank-panel {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .bank-card,
+    .trial-card {
+      min-width: min(100%, 220px);
+      padding: 0.78rem 0.9rem;
+      border: 1px solid rgba(64, 240, 208, 0.22);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(21, 33, 30, 0.94), rgba(8, 13, 13, 0.94));
+      box-shadow: var(--shadow-tight);
+    }
+
+    .bank-card span,
+    .trial-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .bank-card strong,
+    .trial-card strong {
+      display: block;
+      margin-top: 0.1rem;
+      color: var(--text);
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      line-height: 1;
+    }
+
+    .task-cue {
+      min-height: 2.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.72rem 0.9rem;
+      border: 1px solid rgba(246, 189, 86, 0.3);
+      border-radius: var(--radius);
+      background: rgba(246, 189, 86, 0.08);
+      color: #fce5b5;
+      text-align: center;
+      font-weight: 780;
+    }
+
+    .deck-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(0.75rem, 2vw, 1rem);
+    }
+
+    .deck-button {
+      position: relative;
+      min-height: clamp(8rem, 18vw, 11.5rem);
+      overflow: hidden;
+      border: 1px solid rgba(64, 240, 208, 0.26);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 30%),
+        linear-gradient(145deg, rgba(21, 33, 30, 0.98), rgba(5, 11, 12, 0.96));
+      color: var(--text);
+      box-shadow: var(--shadow-tight);
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, opacity 140ms ease;
+    }
+
+    .deck-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(64, 240, 208, 0.15), transparent 34%),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 13px);
+      opacity: 0.64;
+      pointer-events: none;
+    }
+
+    .deck-button:hover:not(:disabled),
+    .deck-button:focus-visible:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: rgba(64, 240, 208, 0.62);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%),
+        linear-gradient(145deg, rgba(24, 48, 44, 0.98), rgba(5, 13, 14, 0.96));
+    }
+
+    .deck-button:disabled {
+      opacity: 0.54;
+    }
+
+    .deck-button.selected {
+      opacity: 1;
+      border-color: rgba(246, 189, 86, 0.72);
+      box-shadow: 0 0 0 2px rgba(246, 189, 86, 0.16), var(--shadow-tight);
+    }
+
+    .deck-face {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.7rem;
+      padding: 1rem;
+    }
+
+    .deck-letter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: clamp(4.6rem, 11vw, 6.4rem);
+      height: clamp(4.6rem, 11vw, 6.4rem);
+      border: 2px solid rgba(64, 240, 208, 0.64);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.16), transparent 46%),
+        rgba(64, 240, 208, 0.1);
+      color: var(--accent);
+      font-size: clamp(2.3rem, 8vw, 4.25rem);
+      line-height: 1;
+      font-weight: 780;
+      text-shadow: 0 0 30px rgba(64, 240, 208, 0.18);
+    }
+
+    .deck-key {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 760;
+    }
+
+    .feedback-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(0.75rem, 2vw, 1rem);
+    }
+
+    .outcome-card {
+      min-height: 6.5rem;
+      display: grid;
+      align-content: center;
+      gap: 0.3rem;
+      padding: 1rem;
+      border-radius: var(--radius);
+      border: 1px solid rgba(103, 140, 131, 0.22);
+      background: rgba(4, 12, 12, 0.62);
+      color: var(--muted);
+    }
+
+    .outcome-card.active.reward {
+      border-color: rgba(116, 242, 160, 0.48);
+      background: linear-gradient(180deg, rgba(116, 242, 160, 0.14), rgba(4, 12, 12, 0.72));
+      color: var(--good);
+    }
+
+    .outcome-card.active.fee {
+      border-color: rgba(255, 102, 118, 0.52);
+      background: linear-gradient(180deg, rgba(255, 102, 118, 0.14), rgba(4, 12, 12, 0.72));
+      color: #ffb3bc;
+    }
+
+    .outcome-card.active.no-fee {
+      border-color: rgba(64, 240, 208, 0.34);
+      background: linear-gradient(180deg, rgba(64, 240, 208, 0.1), rgba(4, 12, 12, 0.72));
+      color: var(--accent);
+    }
+
+    .outcome-card span {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 780;
+      text-transform: uppercase;
+    }
+
+    .outcome-card strong {
+      color: currentColor;
+      font-size: clamp(1.25rem, 4vw, 2rem);
+      line-height: 1.05;
+    }
+
+    .collect-wrap {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .collect-wrap[hidden] {
+      display: none !important;
+    }
+
+    .collect-note {
+      margin: 0;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.93rem;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .result-actions .primary-button,
+    .result-actions .secondary-button {
+      width: auto;
+      flex: 1 1 13rem;
+    }
+
+    .results-panel {
+      padding: clamp(1.1rem, 3vw, 1.6rem);
+    }
+
+    .results-panel > p {
+      margin: 0 0 1rem;
+      color: var(--muted);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .metric {
+      min-height: 5.6rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.35rem;
+      padding: 0.85rem;
+      border: 1px solid rgba(103, 140, 131, 0.22);
+      border-radius: var(--radius);
+      background: rgba(5, 13, 13, 0.72);
+    }
+
+    .metric.primary {
+      border-color: rgba(64, 240, 208, 0.48);
+      background: linear-gradient(180deg, rgba(64, 240, 208, 0.13), rgba(5, 13, 13, 0.78));
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 740;
+    }
+
+    .metric strong {
+      color: var(--text);
+      font-size: clamp(1.25rem, 3vw, 1.8rem);
+      line-height: 1;
+    }
+
+    .interpretation-panel {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid rgba(103, 140, 131, 0.22);
+      border-radius: var(--radius);
+      background: rgba(4, 12, 12, 0.56);
+    }
+
+    .interpretation-panel h3 {
+      margin: 0 0 0.7rem;
+      font-size: 1.05rem;
+    }
+
+    .interpretation-panel p {
+      margin: 0 0 0.8rem;
+      color: var(--muted-strong);
+    }
+
+    .interpretation-panel p:last-child {
+      margin-bottom: 0;
+    }
+
+    .result-meta {
+      margin-top: 1rem !important;
+      color: var(--muted) !important;
+      font-size: 0.88rem;
+    }
+
+    @media (max-width: 840px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-strip {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .setup-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .deck-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .deck-button {
+        min-height: 8.3rem;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .main {
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+      }
+
+      .status-pill {
+        flex: 1 1 auto;
+      }
+
+      .bank-panel {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .feedback-grid,
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .deck-grid {
+        gap: 0.62rem;
+      }
+
+      .deck-button {
+        min-height: 7.4rem;
+      }
+
+      .deck-letter {
+        width: 4.4rem;
+        height: 4.4rem;
+        font-size: 2.4rem;
+      }
+
+      .primary-button,
+      .secondary-button {
+        min-height: 3rem;
+      }
+
+      .result-actions .primary-button,
+      .result-actions .secondary-button {
+        width: 100%;
+        flex-basis: 100%;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .deck-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Iowa Gambling Task</h1>
+        <span>Standalone browser task</span>
+      </div>
+      <div class="status-strip" id="statusStrip" aria-live="polite">
+        <span class="status-pill" id="bankStatus">Bank: $2000</span>
+        <span class="status-pill" id="trialStatus">No active session</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="screen setup-screen" id="setupScreen">
+        <div class="setup-layout">
+          <div class="intro-panel">
+            <h2>Choose decks to build your bank.</h2>
+            <p>You start with a loan of $2000. On each trial, choose one of four decks. Each choice wins money, and some choices also require paying a fee.</p>
+            <p>After choosing a deck, collect the outcome to update your bank and continue. Use touch, mouse, or number keys 1 through 4.</p>
+            <ol class="rule-list">
+              <li>Choose one deck: A, B, C, or D.</li>
+              <li>Review the win and any fee for that choice.</li>
+              <li>Collect the outcome and continue until all 100 choices are complete.</li>
+            </ol>
+            <div class="accessibility-note">The deck patterns are not shown during the task. The goal is to make choices from feedback as it unfolds.</div>
+          </div>
+
+          <aside class="config-panel" aria-labelledby="configHeading">
+            <h2 id="configHeading">Session</h2>
+            <p>This standalone version runs locally in the browser and saves results only when you download the CSV.</p>
+            <div class="session-facts" id="sessionFacts"></div>
+            <button class="primary-button" id="startButton" type="button">Start task</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen task-screen" id="taskScreen" hidden>
+        <div class="progress-wrap" aria-hidden="true">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <section class="task-board" aria-label="Iowa Gambling Task">
+          <div class="bank-panel">
+            <div class="bank-card">
+              <span>Your money</span>
+              <strong id="bankValue">$2000</strong>
+            </div>
+            <div class="trial-card">
+              <span>Progress</span>
+              <strong id="trialValue">1 / 100</strong>
+            </div>
+          </div>
+
+          <div class="task-cue" id="responseCue">Choose one of the four decks.</div>
+
+          <div class="deck-grid" id="deckGrid" aria-label="Deck choices"></div>
+
+          <div class="feedback-grid" aria-live="polite">
+            <div class="outcome-card" id="rewardCard">
+              <span>Win</span>
+              <strong id="rewardText">Waiting</strong>
+            </div>
+            <div class="outcome-card" id="feeCard">
+              <span>Fee</span>
+              <strong id="feeText">Waiting</strong>
+            </div>
+          </div>
+
+          <div class="collect-wrap" id="collectWrap" hidden>
+            <button class="primary-button" id="collectButton" type="button">Collect / pay fee</button>
+            <p class="collect-note" id="collectNote"></p>
+          </div>
+        </section>
+
+      </section>
+
+      <section class="screen results-screen" id="resultsScreen" hidden>
+        <div class="results-panel">
+          <h2 id="resultsHeading">Session complete</h2>
+          <p id="resultsSummary"></p>
+          <div class="metric-grid" id="metricGrid"></div>
+          <div class="interpretation-panel" id="interpretationPanel"></div>
+          <div class="result-actions">
+            <button class="primary-button" id="downloadButton" type="button">Download CSV</button>
+            <button class="secondary-button" id="restartButton" type="button">Start another session</button>
+          </div>
+          <p class="result-meta" id="resultMeta"></p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    "use strict";
+
+    /*
+      Editable task configuration.
+
+      This implementation follows the visible PsyToolkit Iowa Gambling Task
+      description and demo flow:
+      - 100 choices.
+      - Starting bank of $2000.
+      - Decks A/B win $100; Decks C/D win $50.
+      - Each choice has an independent 50% chance of a fee.
+      - When a fee applies, A/B charge $250 and C/D charge $50.
+    */
+    const CORE_CSV_COLUMNS = [
+      "Response Time (ms)",
+      "Deck Number",
+      "High Penalty Deck",
+      "Fee Applied",
+      "Bank Before",
+      "Bank After",
+      "Reward",
+      "Fee"
+    ];
+
+    const CSV_COLUMNS = [
+      "Session ID",
+      "Seed",
+      "Started At",
+      "Completed At",
+      "Trial",
+      "Deck",
+      "Deck Number",
+      "High Penalty Deck",
+      "Fee Applied",
+      "Bank Before",
+      "Bank After",
+      "Reward",
+      "Fee",
+      "Net Change",
+      "Response Time (ms)",
+      "Cumulative A",
+      "Cumulative B",
+      "Cumulative C",
+      "Cumulative D",
+      "Net Score"
+    ];
+
+    const TASK_CONFIG = {
+      protocolSource: "https://www.psytoolkit.org/experiment-library/igt.html",
+      csvFilenamePrefix: "iowa_gambling_task",
+      totalTrials: 100,
+      startingBank: 2000,
+      feeProbability: 0.5,
+      collectLabel: "Collect / pay fee",
+      requiredCsvColumns: CORE_CSV_COLUMNS,
+      protocolChecklist: [
+        "100 completed choices before results",
+        "$2000 starting bank",
+        "Decks A/B map to buttons 1/2, win $100, and are high-penalty decks",
+        "Decks C/D map to buttons 3/4, win $50, and are lower-penalty decks",
+        "Each trial has an independent 50% fee chance",
+        "A/B fees are $250 when applied; C/D fees are $50 when applied",
+        "CSV core fields preserve PsyToolkit trial semantics"
+      ],
+      decks: [
+        { label: "A", number: 1, highPenalty: true, reward: 100, fee: 250 },
+        { label: "B", number: 2, highPenalty: true, reward: 100, fee: 250 },
+        { label: "C", number: 3, highPenalty: false, reward: 50, fee: 50 },
+        { label: "D", number: 4, highPenalty: false, reward: 50, fee: 50 }
+      ],
+      blockSize: 20
+    };
+
+    const dom = {
+      setupScreen: document.getElementById("setupScreen"),
+      taskScreen: document.getElementById("taskScreen"),
+      resultsScreen: document.getElementById("resultsScreen"),
+      sessionFacts: document.getElementById("sessionFacts"),
+      startButton: document.getElementById("startButton"),
+      restartButton: document.getElementById("restartButton"),
+      downloadButton: document.getElementById("downloadButton"),
+      bankStatus: document.getElementById("bankStatus"),
+      trialStatus: document.getElementById("trialStatus"),
+      progressBar: document.getElementById("progressBar"),
+      bankValue: document.getElementById("bankValue"),
+      trialValue: document.getElementById("trialValue"),
+      responseCue: document.getElementById("responseCue"),
+      deckGrid: document.getElementById("deckGrid"),
+      rewardCard: document.getElementById("rewardCard"),
+      rewardText: document.getElementById("rewardText"),
+      feeCard: document.getElementById("feeCard"),
+      feeText: document.getElementById("feeText"),
+      collectWrap: document.getElementById("collectWrap"),
+      collectButton: document.getElementById("collectButton"),
+      collectNote: document.getElementById("collectNote"),
+      resultsHeading: document.getElementById("resultsHeading"),
+      resultsSummary: document.getElementById("resultsSummary"),
+      metricGrid: document.getElementById("metricGrid"),
+      interpretationPanel: document.getElementById("interpretationPanel"),
+      resultMeta: document.getElementById("resultMeta")
+    };
+
+    let state = null;
+
+    function validateTaskConfig() {
+      if (TASK_CONFIG.totalTrials !== 100) {
+        throw new Error("TASK_CONFIG.totalTrials must be 100 for this implementation.");
+      }
+      if (TASK_CONFIG.startingBank !== 2000) {
+        throw new Error("TASK_CONFIG.startingBank must be 2000.");
+      }
+      if (TASK_CONFIG.feeProbability !== 0.5) {
+        throw new Error("TASK_CONFIG.feeProbability must be 0.5.");
+      }
+      if (TASK_CONFIG.decks.length !== 4) {
+        throw new Error("TASK_CONFIG.decks must define exactly four decks.");
+      }
+      const labels = TASK_CONFIG.decks.map((deck) => deck.label).join("");
+      const numbers = TASK_CONFIG.decks.map((deck) => deck.number).join("");
+      if (labels !== "ABCD" || numbers !== "1234") {
+        throw new Error("Deck labels and numbers must preserve A-D / 1-4 order.");
+      }
+      if (TASK_CONFIG.requiredCsvColumns.join("|") !== CORE_CSV_COLUMNS.join("|")) {
+        throw new Error("Required CSV columns must preserve the PsyToolkit core output fields.");
+      }
+      for (const column of CORE_CSV_COLUMNS) {
+        if (!CSV_COLUMNS.includes(column)) {
+          throw new Error(`Expanded CSV is missing PsyToolkit core column: ${column}.`);
+        }
+      }
+      for (const deck of TASK_CONFIG.decks) {
+        if (deck.highPenalty && (deck.reward !== 100 || deck.fee !== 250)) {
+          throw new Error("Decks A/B must win $100 and charge a $250 fee when a fee applies.");
+        }
+        if (!deck.highPenalty && (deck.reward !== 50 || deck.fee !== 50)) {
+          throw new Error("Decks C/D must win $50 and charge a $50 fee when a fee applies.");
+        }
+      }
+    }
+
+    function makeSessionId() {
+      const now = new Date();
+      const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
+      return `${now.toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${randomPart}`;
+    }
+
+    function hashString(input) {
+      let hash = 2166136261;
+      for (let i = 0; i < input.length; i += 1) {
+        hash ^= input.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return hash >>> 0;
+    }
+
+    function mulberry32(seed) {
+      return function nextRandom() {
+        seed |= 0;
+        seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function buildFeeSchedule(rng) {
+      return Array.from({ length: TASK_CONFIG.totalTrials }, () => {
+        return rng() < TASK_CONFIG.feeProbability ? 1 : 0;
+      });
+    }
+
+    function renderSessionFacts() {
+      const facts = [
+        { label: "Choices", value: TASK_CONFIG.totalTrials },
+        { label: "Starting bank", value: formatMoney(TASK_CONFIG.startingBank) }
+      ];
+      dom.sessionFacts.innerHTML = facts.map((fact) => `
+        <div class="session-fact">
+          <span>${escapeHtml(fact.label)}</span>
+          <strong>${escapeHtml(String(fact.value))}</strong>
+        </div>
+      `).join("");
+    }
+
+    function buildDeckButtons() {
+      dom.deckGrid.innerHTML = "";
+      TASK_CONFIG.decks.forEach((deck) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "deck-button";
+        button.dataset.deck = deck.label;
+        button.setAttribute("aria-label", `Choose deck ${deck.label}`);
+        button.innerHTML = `
+          <span class="deck-face">
+            <span class="deck-letter">${escapeHtml(deck.label)}</span>
+            <span class="deck-key">Key ${deck.number}</span>
+          </span>
+        `;
+        button.addEventListener("click", () => chooseDeck(deck.label));
+        dom.deckGrid.appendChild(button);
+      });
+    }
+
+    function startTask() {
+      const sessionId = makeSessionId();
+      const seed = hashString(sessionId);
+      const rng = mulberry32(seed);
+      state = {
+        sessionId,
+        seed,
+        rng,
+        startedAt: new Date().toISOString(),
+        completedAt: "",
+        bank: TASK_CONFIG.startingBank,
+        trialNumber: 1,
+        currentTrialStart: performance.now(),
+        currentPendingTrial: null,
+        awaitingCollect: false,
+        responseEnabled: true,
+        feeSchedule: buildFeeSchedule(rng),
+        deckCounts: { A: 0, B: 0, C: 0, D: 0 },
+        trials: []
+      };
+      resetFeedback();
+      buildDeckButtons();
+      setDeckButtonsEnabled(true);
+      updateTaskView();
+      showScreen("task");
+    }
+
+    function showScreen(screenName) {
+      dom.setupScreen.hidden = screenName !== "setup";
+      dom.taskScreen.hidden = screenName !== "task";
+      dom.resultsScreen.hidden = screenName !== "results";
+      document.body.dataset.screen = screenName;
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+
+    function chooseDeck(label) {
+      if (!state || !state.responseEnabled || state.awaitingCollect || state.trials.length >= TASK_CONFIG.totalTrials) {
+        return;
+      }
+      const deck = TASK_CONFIG.decks.find((item) => item.label === label);
+      if (!deck) {
+        return;
+      }
+      const now = performance.now();
+      const responseTime = Math.max(0, Math.round(now - state.currentTrialStart));
+      const feeApplied = state.feeSchedule[state.trialNumber - 1] === 1;
+      const fee = feeApplied ? deck.fee : 0;
+      const reward = deck.reward;
+      const bankBefore = state.bank;
+      const bankAfter = bankBefore + reward - fee;
+      const netChange = bankAfter - bankBefore;
+      state.currentPendingTrial = {
+        sessionId: state.sessionId,
+        seed: state.seed,
+        startedAt: state.startedAt,
+        trial: state.trialNumber,
+        block: Math.ceil(state.trialNumber / TASK_CONFIG.blockSize),
+        deck: deck.label,
+        deckNumber: deck.number,
+        highPenaltyDeck: deck.highPenalty ? 1 : 0,
+        feeApplied: feeApplied ? 1 : 0,
+        bankBefore,
+        bankAfter,
+        reward,
+        fee,
+        netChange,
+        responseTime,
+        collectTime: 0,
+        cumulativeA: state.deckCounts.A + (deck.label === "A" ? 1 : 0),
+        cumulativeB: state.deckCounts.B + (deck.label === "B" ? 1 : 0),
+        cumulativeC: state.deckCounts.C + (deck.label === "C" ? 1 : 0),
+        cumulativeD: state.deckCounts.D + (deck.label === "D" ? 1 : 0),
+        netScore: getNetScore({
+          A: state.deckCounts.A + (deck.label === "A" ? 1 : 0),
+          B: state.deckCounts.B + (deck.label === "B" ? 1 : 0),
+          C: state.deckCounts.C + (deck.label === "C" ? 1 : 0),
+          D: state.deckCounts.D + (deck.label === "D" ? 1 : 0)
+        })
+      };
+      state.awaitingCollect = true;
+      state.responseEnabled = false;
+      setDeckButtonsEnabled(false, label);
+      renderFeedback(state.currentPendingTrial);
+      updateTaskView();
+    }
+
+    function renderFeedback(trial) {
+      dom.rewardCard.className = "outcome-card active reward";
+      dom.rewardText.textContent = `You win ${formatMoney(trial.reward)}`;
+      if (trial.feeApplied) {
+        dom.feeCard.className = "outcome-card active fee";
+        dom.feeText.textContent = `Fee of ${formatMoney(trial.fee)}`;
+      } else {
+        dom.feeCard.className = "outcome-card active no-fee";
+        dom.feeText.textContent = "No fee";
+      }
+      dom.responseCue.textContent = `Deck ${trial.deck} selected. Collect the outcome to continue.`;
+      dom.collectNote.textContent = `This choice will change your bank by ${formatSignedMoney(trial.netChange)}.`;
+      dom.collectWrap.hidden = false;
+      dom.collectButton.focus();
+    }
+
+    function collectOutcome() {
+      if (!state || !state.currentPendingTrial || !state.awaitingCollect) {
+        return;
+      }
+      const trial = state.currentPendingTrial;
+      trial.collectTime = Math.max(0, Math.round(performance.now() - (state.currentTrialStart + trial.responseTime)));
+      state.bank = trial.bankAfter;
+      state.deckCounts[trial.deck] += 1;
+      state.trials.push(trial);
+      state.currentPendingTrial = null;
+      state.awaitingCollect = false;
+      if (state.trials.length >= TASK_CONFIG.totalTrials) {
+        finishTask();
+        return;
+      }
+      state.trialNumber += 1;
+      state.currentTrialStart = performance.now();
+      state.responseEnabled = true;
+      resetFeedback();
+      setDeckButtonsEnabled(true);
+      updateTaskView();
+      keepTaskVisible();
+    }
+
+    function resetFeedback() {
+      dom.rewardCard.className = "outcome-card";
+      dom.feeCard.className = "outcome-card";
+      dom.rewardText.textContent = "Waiting";
+      dom.feeText.textContent = "Waiting";
+      dom.responseCue.textContent = "Choose one of the four decks.";
+      dom.collectWrap.hidden = true;
+      dom.collectNote.textContent = "";
+    }
+
+    function setDeckButtonsEnabled(enabled, selectedLabel = "") {
+      for (const button of dom.deckGrid.querySelectorAll(".deck-button")) {
+        button.disabled = !enabled;
+        button.classList.toggle("selected", button.dataset.deck === selectedLabel);
+      }
+    }
+
+    function updateTaskView(forceComplete = false) {
+      if (!state) {
+        dom.bankStatus.textContent = `Bank: ${formatMoney(TASK_CONFIG.startingBank)}`;
+        dom.trialStatus.textContent = "No active session";
+        dom.progressBar.style.width = "0%";
+        return;
+      }
+      dom.bankValue.textContent = formatMoney(state.bank);
+      dom.bankStatus.textContent = `Bank: ${formatMoney(state.bank)}`;
+      if (forceComplete) {
+        dom.trialStatus.textContent = "Session complete";
+        dom.progressBar.style.width = `${Math.min(100, (state.trials.length / TASK_CONFIG.totalTrials) * 100)}%`;
+        return;
+      }
+      dom.trialValue.textContent = `${state.trialNumber} / ${TASK_CONFIG.totalTrials}`;
+      dom.trialStatus.textContent = `Trial ${state.trialNumber} of ${TASK_CONFIG.totalTrials}`;
+      dom.progressBar.style.width = `${Math.min(100, (state.trials.length / TASK_CONFIG.totalTrials) * 100)}%`;
+    }
+
+    function finishTask() {
+      if (!state || state.trials.length !== TASK_CONFIG.totalTrials || state.currentPendingTrial) {
+        return;
+      }
+      validateCompletedTrials(state.trials, state.bank);
+      state.completedAt = new Date().toISOString();
+      renderResults();
+      updateTaskView(true);
+      showScreen("results");
+    }
+
+    function resetToSetup() {
+      state = null;
+      resetFeedback();
+      dom.progressBar.style.width = "0%";
+      dom.bankStatus.textContent = `Bank: ${formatMoney(TASK_CONFIG.startingBank)}`;
+      dom.trialStatus.textContent = "No active session";
+      dom.bankValue.textContent = formatMoney(TASK_CONFIG.startingBank);
+      dom.trialValue.textContent = `1 / ${TASK_CONFIG.totalTrials}`;
+      showScreen("setup");
+    }
+
+    function renderResults() {
+      const trialsCompleted = state.trials.length;
+      const highPenaltyChoices = state.deckCounts.A + state.deckCounts.B;
+      const lowerPenaltyChoices = state.deckCounts.C + state.deckCounts.D;
+      const netScore = lowerPenaltyChoices - highPenaltyChoices;
+      const netGain = state.bank - TASK_CONFIG.startingBank;
+      const feeCount = state.trials.reduce((sum, trial) => sum + trial.feeApplied, 0);
+      const medianRt = median(state.trials.map((trial) => trial.responseTime).filter(Number.isFinite));
+      dom.resultsHeading.textContent = "Session complete";
+      dom.resultsSummary.textContent = `The session was completed after ${trialsCompleted} of ${TASK_CONFIG.totalTrials} choices.`;
+      const metrics = [
+        { label: "Ending bank", value: formatMoney(state.bank), primary: true },
+        { label: "Net change", value: formatSignedMoney(netGain) },
+        { label: "A/B choices", value: highPenaltyChoices },
+        { label: "C/D choices", value: lowerPenaltyChoices },
+        { label: "Net score", value: formatSignedNumber(netScore) },
+        { label: "Fees paid", value: feeCount },
+        { label: "Typical response time", value: Number.isFinite(medianRt) ? `${Math.round(medianRt)} ms` : "n/a" }
+      ];
+      dom.metricGrid.innerHTML = metrics.map((metric) => `
+        <div class="metric${metric.primary ? " primary" : ""}">
+          <span>${escapeHtml(metric.label)}</span>
+          <strong>${escapeHtml(String(metric.value))}</strong>
+        </div>
+      `).join("");
+      dom.resultMeta.textContent = `Session ID: ${state.sessionId}. Use Download CSV for the trial-by-trial record.`;
+      renderResultsInterpretation({
+        trialsCompleted,
+        highPenaltyChoices,
+        lowerPenaltyChoices,
+        netScore,
+        netGain,
+        medianRt
+      });
+    }
+
+    function renderResultsInterpretation({ trialsCompleted, highPenaltyChoices, lowerPenaltyChoices, netScore, netGain, medianRt }) {
+      const choiceText = trialsCompleted === 1 ? "1 choice" : `${trialsCompleted} choices`;
+      const responseSpeedText = Number.isFinite(medianRt)
+        ? `Your typical deck choice took about ${Math.round(medianRt)} ms.`
+        : "Response speed was not available for this session.";
+      const directionText = netScore > 0
+        ? "You chose the lower-penalty decks more often than the higher-penalty decks."
+        : netScore < 0
+          ? "You chose the higher-penalty decks more often than the lower-penalty decks."
+          : "You chose the higher-penalty and lower-penalty decks equally often.";
+      const highPenaltyChoiceText = `${highPenaltyChoices} ${highPenaltyChoices === 1 ? "time" : "times"}`;
+      const lowerPenaltyChoiceText = `${lowerPenaltyChoices} ${lowerPenaltyChoices === 1 ? "time" : "times"}`;
+      dom.interpretationPanel.innerHTML = `
+        <h3>What these results mean</h3>
+        <p><strong>Takeaway: you ended ${formatSignedMoney(netGain)} from the starting loan after ${choiceText}.</strong></p>
+        <p>This task looks at learning from uncertain rewards and fees. Some decks offer larger immediate wins, but those choices can also carry larger costs over time.</p>
+        <p>You chose decks A/B ${highPenaltyChoiceText} and decks C/D ${lowerPenaltyChoiceText}. The net score is C/D choices minus A/B choices, so higher positive values mean more choices from the lower-penalty side.</p>
+        <p>${escapeHtml(directionText)}</p>
+        <p>${escapeHtml(responseSpeedText)} The summary reflects the complete 100-choice session.</p>
+        <p class="clinical-note">This browser task is for demonstration and education. It should not be used as a clinical diagnosis or as a substitute for a professional assessment.</p>
+      `;
+    }
+
+    function makeCsv() {
+      validateCompletedTrials(state.trials, state.bank);
+      const rows = state.trials.map((trial) => [
+        trial.sessionId,
+        trial.seed,
+        trial.startedAt,
+        state.completedAt,
+        trial.trial,
+        trial.deck,
+        trial.deckNumber,
+        trial.highPenaltyDeck,
+        trial.feeApplied,
+        trial.bankBefore,
+        trial.bankAfter,
+        trial.reward,
+        trial.fee,
+        trial.netChange,
+        trial.responseTime,
+        trial.cumulativeA,
+        trial.cumulativeB,
+        trial.cumulativeC,
+        trial.cumulativeD,
+        trial.netScore
+      ]);
+      return [CSV_COLUMNS, ...rows].map((row) => row.map(csvEscape).join(",")).join("\r\n");
+    }
+
+    function downloadCsv() {
+      if (!state || state.trials.length !== TASK_CONFIG.totalTrials) {
+        return;
+      }
+      const csv = makeCsv();
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${TASK_CONFIG.csvFilenamePrefix}_${state.sessionId}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function validateCompletedTrials(trials, finalBank) {
+      if (!Array.isArray(trials) || trials.length !== TASK_CONFIG.totalTrials) {
+        throw new Error(`A valid Iowa Gambling Task session must have exactly ${TASK_CONFIG.totalTrials} completed trials.`);
+      }
+      let expectedBank = TASK_CONFIG.startingBank;
+      const counts = { A: 0, B: 0, C: 0, D: 0 };
+      trials.forEach((trial, index) => {
+        const expectedTrial = index + 1;
+        const deck = TASK_CONFIG.decks.find((item) => item.label === trial.deck);
+        if (!deck) {
+          throw new Error(`Trial ${expectedTrial} has an invalid deck label.`);
+        }
+        if (trial.trial !== expectedTrial) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect trial number.`);
+        }
+        if (trial.deckNumber !== deck.number) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect deck number.`);
+        }
+        if (trial.highPenaltyDeck !== (deck.highPenalty ? 1 : 0)) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect high-penalty flag.`);
+        }
+        if (trial.feeApplied !== 0 && trial.feeApplied !== 1) {
+          throw new Error(`Trial ${expectedTrial} has an invalid fee flag.`);
+        }
+        const expectedFee = trial.feeApplied ? deck.fee : 0;
+        const expectedBankAfter = expectedBank + deck.reward - expectedFee;
+        if (trial.bankBefore !== expectedBank) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect bank-before value.`);
+        }
+        if (trial.reward !== deck.reward) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect reward value.`);
+        }
+        if (trial.fee !== expectedFee) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect fee value.`);
+        }
+        if (trial.bankAfter !== expectedBankAfter) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect bank-after value.`);
+        }
+        if (trial.netChange !== trial.reward - trial.fee) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect net-change value.`);
+        }
+        if (!Number.isInteger(trial.responseTime) || trial.responseTime < 0) {
+          throw new Error(`Trial ${expectedTrial} has an invalid response time.`);
+        }
+        counts[deck.label] += 1;
+        if (
+          trial.cumulativeA !== counts.A ||
+          trial.cumulativeB !== counts.B ||
+          trial.cumulativeC !== counts.C ||
+          trial.cumulativeD !== counts.D
+        ) {
+          throw new Error(`Trial ${expectedTrial} has incorrect cumulative deck counts.`);
+        }
+        if (trial.netScore !== getNetScore(counts)) {
+          throw new Error(`Trial ${expectedTrial} has an incorrect net score.`);
+        }
+        expectedBank = expectedBankAfter;
+      });
+      if (finalBank !== expectedBank) {
+        throw new Error("Final bank does not match the last trial bank-after value.");
+      }
+    }
+
+    function csvEscape(value) {
+      const text = value == null ? "" : String(value);
+      if (/[",\r\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+      }
+      return text;
+    }
+
+    function getNetScore(counts) {
+      return (counts.C + counts.D) - (counts.A + counts.B);
+    }
+
+    function formatMoney(value) {
+      return `$${Math.round(value)}`;
+    }
+
+    function formatSignedMoney(value) {
+      if (value > 0) {
+        return `+${formatMoney(value)}`;
+      }
+      if (value < 0) {
+        return `-${formatMoney(Math.abs(value))}`;
+      }
+      return "$0";
+    }
+
+    function formatSignedNumber(value) {
+      if (value > 0) {
+        return `+${value}`;
+      }
+      return String(value);
+    }
+
+    function median(values) {
+      if (!values.length) {
+        return Number.NaN;
+      }
+      const sorted = values.slice().sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function keepTaskVisible() {
+      if (!window.matchMedia("(max-width: 840px)").matches) {
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        dom.taskScreen.scrollIntoView({
+          block: "start",
+          inline: "nearest",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+        });
+      });
+    }
+
+    function handleKeydown(event) {
+      if (!state || dom.taskScreen.hidden || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      if (state.responseEnabled && !state.awaitingCollect && ["1", "2", "3", "4"].includes(event.key)) {
+        event.preventDefault();
+        const deck = TASK_CONFIG.decks[Number(event.key) - 1];
+        chooseDeck(deck.label);
+        return;
+      }
+      if (state.awaitingCollect && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        collectOutcome();
+      }
+    }
+
+    validateTaskConfig();
+    renderSessionFacts();
+    buildDeckButtons();
+    resetFeedback();
+    updateTaskView();
+
+    dom.startButton.addEventListener("click", startTask);
+    dom.collectButton.addEventListener("click", collectOutcome);
+    dom.restartButton.addEventListener("click", resetToSetup);
+    dom.downloadButton.addEventListener("click", downloadCsv);
+    document.addEventListener("keydown", handleKeydown);
+  </script>
+</body>
+</html>
