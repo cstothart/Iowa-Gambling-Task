@@ -1348,7 +1348,6 @@
         <p>You picked decks A and B ${highPenaltyChoiceText} and decks C and D ${lowerPenaltyChoiceText}. Your net score is your C and D picks minus your A and B picks. A higher score means you chose the better decks (C and D) more often.</p>
         <p>${escapeHtml(directionText)}</p>
         <p>${escapeHtml(responseSpeedText)} These numbers cover all 100 picks.</p>
-        <p class="clinical-note">This game is only for learning and practice. It is not a medical test, and it cannot diagnose anyone. For a real evaluation, talk to a professional.</p>
       `;
     }
 
@@ -1421,8 +1420,7 @@
         `Fees paid: ${feeCount}.`,
         responseTimeLine,
         `Session ID: ${state.sessionId}.`,
-        "",
-        "This browser task is for demonstration and education. It should not be used as a clinical diagnosis or as a substitute for a professional assessment."
+        ""
       ].join("\n");
       return {
         title: "Iowa Gambling Task results",
