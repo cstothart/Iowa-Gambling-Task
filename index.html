@@ -599,6 +599,39 @@
       flex: 1 1 13rem;
     }
 
+    .share-fallback {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-top: 0.7rem;
+      padding: 0.72rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(64, 240, 208, 0.06), rgba(255, 255, 255, 0.02)),
+        rgba(255, 255, 255, 0.018);
+    }
+
+    .share-fallback[hidden] {
+      display: none !important;
+    }
+
+    .share-fallback > * {
+      flex: 1 1 8rem;
+    }
+
+    .share-status {
+      margin: 0.65rem 0 0;
+      color: var(--accent);
+      font-size: 0.88rem;
+      min-height: 1.2em;
+    }
+
+    .share-status:empty {
+      margin-top: 0;
+      min-height: 0;
+    }
+
     .results-panel {
       padding: clamp(1.1rem, 3vw, 1.6rem);
     }
@@ -740,7 +773,8 @@
       }
 
       .result-actions .primary-button,
-      .result-actions .secondary-button {
+      .result-actions .secondary-button,
+      .share-fallback > * {
         width: 100%;
         flex-basis: 100%;
       }
@@ -849,8 +883,15 @@
           <div class="interpretation-panel" id="interpretationPanel"></div>
           <div class="result-actions">
             <button class="primary-button" id="downloadButton" type="button">Download CSV</button>
+            <button class="secondary-button" id="shareButton" type="button">Share results</button>
             <button class="secondary-button" id="restartButton" type="button">Start another session</button>
           </div>
+          <div class="share-fallback" id="shareFallback" role="group" aria-label="Share options" hidden>
+            <a class="secondary-button" id="emailShareLink" href="mailto:">Email</a>
+            <a class="secondary-button" id="textShareLink" href="sms:">Text</a>
+            <button class="secondary-button" id="copyShareButton" type="button">Copy</button>
+          </div>
+          <p class="share-status" id="shareStatus" aria-live="polite"></p>
           <p class="result-meta" id="resultMeta"></p>
         </div>
       </section>
@@ -939,6 +980,12 @@
       startButton: document.getElementById("startButton"),
       restartButton: document.getElementById("restartButton"),
       downloadButton: document.getElementById("downloadButton"),
+      shareButton: document.getElementById("shareButton"),
+      shareFallback: document.getElementById("shareFallback"),
+      emailShareLink: document.getElementById("emailShareLink"),
+      textShareLink: document.getElementById("textShareLink"),
+      copyShareButton: document.getElementById("copyShareButton"),
+      shareStatus: document.getElementById("shareStatus"),
       bankStatus: document.getElementById("bankStatus"),
       trialStatus: document.getElementById("trialStatus"),
       progressBar: document.getElementById("progressBar"),
@@ -1271,6 +1318,7 @@
         </div>
       `).join("");
       dom.resultMeta.textContent = `Session ID: ${state.sessionId}. Click Download CSV to save a record of every pick.`;
+      resetShareUi();
       renderResultsInterpretation({
         trialsCompleted,
         highPenaltyChoices,
@@ -1345,6 +1393,141 @@
       anchor.click();
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function buildSharePayload() {
+      if (!state) {
+        return { title: "Iowa Gambling Task results", text: "" };
+      }
+      const trialsCompleted = state.trials.length;
+      const highPenaltyChoices = state.deckCounts.A + state.deckCounts.B;
+      const lowerPenaltyChoices = state.deckCounts.C + state.deckCounts.D;
+      const netScore = lowerPenaltyChoices - highPenaltyChoices;
+      const netGain = state.bank - TASK_CONFIG.startingBank;
+      const feeCount = state.trials.reduce((sum, trial) => sum + trial.feeApplied, 0);
+      const medianRt = median(state.trials.map((trial) => trial.responseTime).filter(Number.isFinite));
+      const responseTimeLine = Number.isFinite(medianRt)
+        ? `Typical pick time: ${Math.round(medianRt)} ms.`
+        : "Typical pick time: not available.";
+      const text = [
+        "Iowa Gambling Task results",
+        "",
+        `Completed picks: ${trialsCompleted} of ${TASK_CONFIG.totalTrials}.`,
+        `Final money: ${formatMoney(state.bank)}.`,
+        `Gain or loss: ${formatSignedMoney(netGain)}.`,
+        `A and B picks: ${highPenaltyChoices}.`,
+        `C and D picks: ${lowerPenaltyChoices}.`,
+        `Net score: ${formatSignedNumber(netScore)}.`,
+        `Fees paid: ${feeCount}.`,
+        responseTimeLine,
+        `Session ID: ${state.sessionId}.`,
+        "",
+        "This browser task is for demonstration and education. It should not be used as a clinical diagnosis or as a substitute for a professional assessment."
+      ].join("\n");
+      return {
+        title: "Iowa Gambling Task results",
+        text
+      };
+    }
+
+    function resetShareUi() {
+      dom.shareFallback.hidden = true;
+      dom.shareStatus.textContent = "";
+      updateShareFallbackLinks();
+    }
+
+    function updateShareFallbackLinks() {
+      const payload = buildSharePayload();
+      dom.emailShareLink.href = `mailto:?subject=${encodeURIComponent(payload.title)}&body=${encodeURIComponent(payload.text)}`;
+      dom.textShareLink.href = `sms:?&body=${encodeURIComponent(payload.text)}`;
+    }
+
+    function setShareStatus(message) {
+      dom.shareStatus.textContent = message;
+    }
+
+    function showShareFallback(message) {
+      updateShareFallbackLinks();
+      dom.shareFallback.hidden = false;
+      setShareStatus(message);
+    }
+
+    function canUseNativeShare(payload) {
+      if (typeof navigator.share !== "function") {
+        return false;
+      }
+      if (typeof navigator.canShare !== "function") {
+        return true;
+      }
+      try {
+        return navigator.canShare(payload);
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function shareResults() {
+      if (!state) {
+        return;
+      }
+      const payload = buildSharePayload();
+      updateShareFallbackLinks();
+      if (canUseNativeShare(payload)) {
+        try {
+          await navigator.share(payload);
+          dom.shareFallback.hidden = true;
+          setShareStatus("Results shared.");
+          return;
+        } catch (error) {
+          const wasCancelled = error && error.name === "AbortError";
+          showShareFallback(wasCancelled ? "Choose another share option." : "Sharing is not available in this browser.");
+          return;
+        }
+      }
+      showShareFallback("Sharing is not available in this browser.");
+    }
+
+    async function copyShareSummary() {
+      if (!state) {
+        return;
+      }
+      const payload = buildSharePayload();
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function" && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(payload.text);
+            setShareStatus("Results copied.");
+            return;
+          } catch (error) {
+            copyTextWithTextarea(payload.text);
+            setShareStatus("Results copied.");
+            return;
+          }
+        }
+        copyTextWithTextarea(payload.text);
+        setShareStatus("Results copied.");
+      } catch (error) {
+        setShareStatus("Copy is not available in this browser.");
+      }
+    }
+
+    function copyTextWithTextarea(text) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.top = "-1000px";
+      textarea.style.left = "-1000px";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      const copied = document.execCommand && document.execCommand("copy");
+      textarea.remove();
+      if (!copied) {
+        throw new Error("Copy command failed");
+      }
     }
 
     function validateCompletedTrials(trials, finalBank) {
@@ -1500,6 +1683,8 @@
     dom.collectButton.addEventListener("click", collectOutcome);
     dom.restartButton.addEventListener("click", resetToSetup);
     dom.downloadButton.addEventListener("click", downloadCsv);
+    dom.shareButton.addEventListener("click", shareResults);
+    dom.copyShareButton.addEventListener("click", copyShareSummary);
     document.addEventListener("keydown", handleKeydown);
   </script>
 </body>
